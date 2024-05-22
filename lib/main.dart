@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 void main() {
@@ -7,119 +9,134 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const JankenPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class JankenPage extends StatefulWidget {
+  const JankenPage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<JankenPage> createState() => _JankenPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+// コンピューター側
+Junken computerHand = Junken.rock;
+// プレイヤーの手
+Junken myHand = Junken.rock;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+var judge = 'あなたが出す手をタップしてください';
 
+// リファクタリングするならプレイヤーとコンピュータの手を保持するインスタンスを作って
+// 論理部を抽出する　現状メインクラスに状態をベタがき
+// MVVCに則るなら、ウィジェットの状態を意識して書き分ける
+
+// var player = Hand();
+// var computer = Hand();
+
+// class Hand {
+//   final int _wins = 0;
+//   final Junken _card = Junken.rock;
+// }
+
+enum Junken {
+  rock('👊'),
+  scissors('✌️'),
+  paper('🖐️');
+
+  final String _emoji;
+  const Junken(this._emoji);
+}
+
+extension JunkenExtension on Junken {
+  String get name => toString().split('.').last;
+  String get emoji => _emoji;
+}
+
+class _JankenPageState extends State<JankenPage> {
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Janken'),
+        backgroundColor: Colors.deepPurple,
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
+          children: [
+            // 勝利判定
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              judge,
+              style: const TextStyle(fontSize: 20),
+            ),
+            // コンピューターの手
+            Text(
+              computerHand.emoji,
+              style: const TextStyle(fontSize: 45),
+            ),
+            const SizedBox(
+              height: 16,
+            ),
+            // 選択した自分の手を表示
+            Text(
+              myHand.emoji,
+              style: const TextStyle(fontSize: 32),
+            ),
+            const SizedBox(
+              height: 16,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              // じゃんけんのウィジェットと論理部分をセット
+              children: [
+                createJunkenWidget(Junken.rock),
+                createJunkenWidget(Junken.scissors),
+                createJunkenWidget(Junken.paper),
+              ],
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  ElevatedButton createJunkenWidget(Junken card) => ElevatedButton(
+      onPressed: () {
+        // 論理部
+        myHand = card;
+        computerHand = generateComputerHand();
+        calculate();
+        setState(() {});
+      },
+      child: Text(card.emoji));
+
+  Junken generateComputerHand() {
+    final randomNum = Random().nextInt(Junken.values.length);
+    final nextHand = Junken.values[randomNum];
+    debugPrint('computer Hand: $nextHand');
+    return nextHand;
+  }
+
+  void calculate() {
+    List<Junken> cards = Junken.values;
+    final int handHeight = cards.indexOf(myHand);
+    final int result = (handHeight - cards.indexOf(computerHand)) % 3;
+    if (result == 0) {
+      judge = '引き分け';
+    } else if (result == 2) {
+      judge = '勝ち';
+    } else {
+      judge = '負け';
+    }
   }
 }
